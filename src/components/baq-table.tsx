@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { BaqRow } from "@/lib/epicor";
 
 // คอลัมน์ BAQ มาในรูปแบบ Table_Field เช่น Customer_CustID -> "Customer · CustID"
@@ -14,12 +15,23 @@ function formatCell(value: BaqRow[string]) {
   return value;
 }
 
-export function BaqTable({ rows }: { rows: BaqRow[] }) {
+type BaqTableProps = {
+  rows: BaqRow[];
+  // คอลัมน์ที่ต้องการแสดง (key -> หัวตาราง) คอลัมน์ที่ไม่มีในข้อมูลจะถูกข้าม ถ้าไม่ระบุจะแสดงทุกคอลัมน์
+  columns?: Record<string, string>;
+  // ทำให้คอลัมน์นี้เป็นลิงก์
+  link?: { column: string; href: (row: BaqRow) => string };
+};
+
+export function BaqTable({ rows, columns: columnLabels, link }: BaqTableProps) {
   if (rows.length === 0) {
     return <p className="text-muted-foreground py-8 text-center">ไม่พบข้อมูล</p>;
   }
 
-  const columns = Object.keys(rows[0]).filter((key) => key !== "RowIdent" && key !== "SysRowID");
+  const available = Object.keys(rows[0]);
+  const preferred = columnLabels ? Object.keys(columnLabels).filter((key) => available.includes(key)) : [];
+  const columns =
+    preferred.length > 0 ? preferred : available.filter((key) => key !== "RowIdent" && key !== "SysRowID" && key !== "RowMod");
 
   return (
     <div className="overflow-x-auto rounded-lg border">
@@ -28,7 +40,7 @@ export function BaqTable({ rows }: { rows: BaqRow[] }) {
           <tr>
             {columns.map((col) => (
               <th key={col} className="px-3 py-2 text-left font-medium whitespace-nowrap">
-                {formatHeader(col)}
+                {columnLabels?.[col] ?? formatHeader(col)}
               </th>
             ))}
           </tr>
@@ -41,7 +53,13 @@ export function BaqTable({ rows }: { rows: BaqRow[] }) {
                   key={col}
                   className={`px-3 py-2 whitespace-nowrap ${typeof row[col] === "number" ? "text-right tabular-nums" : ""}`}
                 >
-                  {formatCell(row[col])}
+                  {link?.column === col ? (
+                    <Link href={link.href(row)} className="font-medium text-primary hover:underline">
+                      {formatCell(row[col])}
+                    </Link>
+                  ) : (
+                    formatCell(row[col])
+                  )}
                 </td>
               ))}
             </tr>

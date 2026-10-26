@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ใบรับรองของเซิร์ฟเวอร์ (เฉพาะแต่ละเครื่อง)
+/certs
