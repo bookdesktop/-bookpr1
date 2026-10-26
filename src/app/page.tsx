@@ -9,7 +9,7 @@ const baqList = (process.env.EPICOR_BAQ_LIST ?? "")
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <h1 className="text-2xl font-semibold">Epicor BAQ Viewer</h1>
       <Link href="/pr" className="block rounded-md border px-4 py-3 font-medium hover:bg-muted/50">
         Purchase Requisition (PR) →
@@ -26,6 +26,6 @@ export default function Home() {
           ))}
         </ul>
       )}
-    </main>
+    </div>
   );
 }

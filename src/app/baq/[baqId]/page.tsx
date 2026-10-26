@@ -58,7 +58,7 @@ async function BaqData({ params, searchParams }: PageProps<"/baq/[baqId]">) {
 
 export default function Page(props: PageProps<"/baq/[baqId]">) {
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Epicor BAQ</h1>
         <Link href="/" className="text-sm text-muted-foreground hover:underline">
@@ -68,6 +68,6 @@ export default function Page(props: PageProps<"/baq/[baqId]">) {
       <Suspense fallback={<p className="text-muted-foreground">กำลังโหลดข้อมูลจาก Epicor...</p>}>
         <BaqData {...props} />
       </Suspense>
-    </main>
+    </div>
   );
 }

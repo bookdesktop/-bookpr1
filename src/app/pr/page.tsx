@@ -96,16 +96,11 @@ async function PrList({ searchParams }: PageProps<"/pr">) {
 
 export default function Page(props: PageProps<"/pr">) {
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Purchase Requisition (PR)</h1>
-        <Link href="/" className="text-sm text-muted-foreground hover:underline">
-          ← หน้าแรก
-        </Link>
-      </div>
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+      <h1 className="text-2xl font-semibold">Purchase Requisition (PR)</h1>
       <Suspense fallback={<p className="text-muted-foreground">กำลังโหลด PR จาก Epicor...</p>}>
         <PrList {...props} />
       </Suspense>
-    </main>
+    </div>
   );
 }
