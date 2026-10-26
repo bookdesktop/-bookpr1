@@ -36,7 +36,7 @@ export function BaqTable({ rows, columns: columnLabels, link }: BaqTableProps) {
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
-        <thead className="bg-muted/50">
+        <thead className="bg-muted text-muted-foreground">
           <tr>
             {columns.map((col) => (
               <th key={col} className="px-3 py-2 text-left font-medium whitespace-nowrap">
@@ -47,7 +47,7 @@ export function BaqTable({ rows, columns: columnLabels, link }: BaqTableProps) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-t hover:bg-muted/30">
+            <tr key={i} className="border-t hover:bg-muted/60">
               {columns.map((col) => (
                 <td
                   key={col}

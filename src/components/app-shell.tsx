@@ -1,15 +1,22 @@
 "use client";
 
+import Form from "next/form";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { FileText, House, Menu, X } from "lucide-react";
+import { Building2, FileText, LayoutDashboard, Maximize, Menu, Minimize, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
-const NAV_ITEMS = [
-  { href: "/", label: "หน้าหลัก", icon: House },
-  { href: "/pr", label: "Purchase Requisition", icon: FileText },
+// เมนูตามรูปแบบ Velzon: แบ่งเป็นกลุ่ม แต่ละกลุ่มมีหัวข้อ (menu-title)
+const NAV_GROUPS = [
+  {
+    title: "Menu",
+    items: [{ href: "/", label: "หน้าหลัก", icon: LayoutDashboard }],
+  },
+  {
+    title: "Epicor",
+    items: [{ href: "/pr", label: "Purchase Requisition", icon: FileText }],
+  },
 ];
 
 function isActive(pathname: string | undefined, href: string) {
@@ -17,82 +24,169 @@ function isActive(pathname: string | undefined, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function NavLinks({ pathname, onNavigate }: { pathname?: string; onNavigate?: () => void }) {
+type NavProps = { pathname?: string; collapsed?: boolean; onNavigate?: () => void };
+
+function NavLinks({ pathname, collapsed, onNavigate }: NavProps) {
   return (
-    <nav className="flex flex-col gap-1 p-3">
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-        const active = isActive(pathname, href);
-        return (
-          <Link
-            key={href}
-            href={href}
-            onClick={onNavigate}
-            aria-current={active ? "page" : undefined}
+    <nav className="flex-1 overflow-y-auto pb-6">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.title}>
+          <p
             className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-              active
-                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+              "px-6 pt-5 pb-2 text-[11px] font-semibold tracking-wider text-sidebar-foreground/70 uppercase",
+              collapsed && "lg:hidden",
             )}
           >
-            <Icon className="size-4" />
-            {label}
-          </Link>
-        );
-      })}
+            {group.title}
+          </p>
+          {collapsed && <div className="mx-auto my-3 hidden h-px w-8 bg-sidebar-border lg:block" />}
+          <ul>
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const active = isActive(pathname, href);
+              return (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    onClick={onNavigate}
+                    title={collapsed ? label : undefined}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex items-center gap-2.5 px-6 py-2.5 text-[15px] transition-colors",
+                      collapsed && "lg:justify-center lg:px-0",
+                      active
+                        ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground hover:text-sidebar-primary",
+                    )}
+                  >
+                    <Icon className="size-[18px] shrink-0" />
+                    <span className={cn("truncate", collapsed && "lg:hidden")}>{label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </nav>
   );
 }
 
 // usePathname ต้องอยู่ใน Suspense เพราะมี route ที่ param รู้ตอน request เท่านั้น (เช่น /pr/[reqNum])
-function ActiveNavLinks({ onNavigate }: { onNavigate?: () => void }) {
-  return <NavLinks pathname={usePathname()} onNavigate={onNavigate} />;
+function ActiveNavLinks(props: Omit<NavProps, "pathname">) {
+  return <NavLinks pathname={usePathname()} {...props} />;
+}
+
+function HeaderIconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="inline-flex size-10 items-center justify-center rounded-full text-secondary-foreground transition-colors hover:bg-secondary-foreground/10"
+    >
+      {children}
+    </button>
+  );
 }
 
 export function AppShell({ company, children }: { company?: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
+  // mobileOpen: drawer บนจอเล็ก / collapsed: ย่อ sidebar เหลือแต่ไอคอนบนจอใหญ่ (70px)
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const closeMobile = () => setMobileOpen(false);
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    const onChange = () => setFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleMenu = () => {
+    if (window.matchMedia("(min-width: 1024px)").matches) setCollapsed((c) => !c);
+    else setMobileOpen((o) => !o);
+  };
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  };
 
   return (
     <div className="flex min-h-svh">
-      {open && <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={close} aria-hidden />}
+      {mobileOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={closeMobile} aria-hidden />}
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-sidebar text-sidebar-foreground transition-transform",
-          "md:sticky md:top-0 md:z-auto md:h-svh md:translate-x-0",
-          open ? "translate-x-0" : "-translate-x-full",
+          "fixed inset-y-0 left-0 z-50 flex w-[250px] flex-col border-r border-sidebar-border bg-sidebar transition-[width,translate] duration-200",
+          "lg:sticky lg:top-0 lg:z-auto lg:h-svh lg:translate-x-0",
+          collapsed && "lg:w-[70px]",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-14 items-center justify-between border-b px-4">
-          <Link href="/" onClick={close} className="font-semibold">
-            Epicor Web
+        <div className={cn("flex h-[70px] shrink-0 items-center justify-between px-5", collapsed && "lg:justify-center lg:px-0")}>
+          <Link href="/" onClick={closeMobile} className="flex items-center gap-2 text-lg font-bold text-foreground">
+            <span className="flex size-8 items-center justify-center rounded bg-primary text-sm text-primary-foreground">
+              EW
+            </span>
+            <span className={cn(collapsed && "lg:hidden")}>Epicor Web</span>
           </Link>
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={close} aria-label="ปิดเมนู">
-            <X />
-          </Button>
+          <button
+            type="button"
+            onClick={closeMobile}
+            aria-label="ปิดเมนู"
+            className="inline-flex size-8 items-center justify-center rounded-full text-sidebar-foreground hover:bg-secondary-foreground/10 lg:hidden"
+          >
+            <X className="size-4" />
+          </button>
         </div>
-        <Suspense fallback={<NavLinks />}>
-          <ActiveNavLinks onNavigate={close} />
+        <Suspense fallback={<NavLinks collapsed={collapsed} />}>
+          <ActiveNavLinks collapsed={collapsed} onNavigate={closeMobile} />
         </Suspense>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur">
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)} aria-label="เปิดเมนู">
-            <Menu />
-          </Button>
-          <span className="font-semibold md:hidden">Epicor Web</span>
-          {company && (
-            <span className="ml-auto rounded-md border px-2.5 py-1 text-xs text-muted-foreground">Company {company}</span>
-          )}
+        <header className="sticky top-0 z-30 flex h-[70px] shrink-0 items-center gap-2 border-b bg-card pl-3 lg:pl-4">
+          <HeaderIconButton label="เมนู" onClick={toggleMenu}>
+            <Menu className="size-[22px]" />
+          </HeaderIconButton>
+
+          <Form action="/pr" className="relative hidden md:block">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input type="hidden" name="status" value="all" />
+            <input
+              name="q"
+              placeholder="ค้นหา PR..."
+              className="h-9 w-[230px] rounded bg-muted pr-3 pl-9 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20"
+            />
+          </Form>
+
+          <div className="ml-auto flex h-full items-center gap-1">
+            <HeaderIconButton label={fullscreen ? "ออกจากเต็มจอ" : "เต็มจอ"} onClick={toggleFullscreen}>
+              {fullscreen ? <Minimize className="size-[18px]" /> : <Maximize className="size-[18px]" />}
+            </HeaderIconButton>
+
+            {/* กล่องผู้ใช้ของ Velzon: พื้นเทาเต็มความสูง header */}
+            {company && (
+              <div className="ml-2 flex h-full items-center gap-2.5 bg-muted px-4 lg:px-5">
+                <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Building2 className="size-4" />
+                </span>
+                <span className="hidden flex-col leading-tight sm:flex">
+                  <span className="text-[13px] font-medium text-foreground">Company {company}</span>
+                  <span className="text-xs text-muted-foreground">Epicor ERP</span>
+                </span>
+              </div>
+            )}
+          </div>
         </header>
         <main className="flex-1">{children}</main>
       </div>
