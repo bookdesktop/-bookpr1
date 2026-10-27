@@ -4,7 +4,8 @@ import Form from "next/form";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { Building2, ChartColumn, FileText, UserSearch, LayoutDashboard, Maximize, Menu, Minimize, Search, X } from "lucide-react";
+import { Building2, ChartColumn, FileText, UserSearch, LayoutDashboard, Menu, Moon, Search, Sun, X } from "lucide-react";
+import { toggleTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 // เมนูตามรูปแบบ Velzon: แบ่งเป็นกลุ่ม แต่ละกลุ่มมีหัวข้อ (menu-title)
@@ -98,7 +99,6 @@ export function AppShell({ company, children }: { company?: string; children: Re
   // mobileOpen: drawer บนจอเล็ก / collapsed: ย่อ sidebar เหลือแต่ไอคอนบนจอใหญ่ (70px)
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [fullscreen, setFullscreen] = useState(false);
   const closeMobile = () => setMobileOpen(false);
 
   useEffect(() => {
@@ -108,20 +108,9 @@ export function AppShell({ company, children }: { company?: string; children: Re
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
 
-  useEffect(() => {
-    const onChange = () => setFullscreen(Boolean(document.fullscreenElement));
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
-
   const toggleMenu = () => {
     if (window.matchMedia("(min-width: 1024px)").matches) setCollapsed((c) => !c);
     else setMobileOpen((o) => !o);
-  };
-
-  const toggleFullscreen = () => {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else document.documentElement.requestFullscreen();
   };
 
   return (
@@ -174,8 +163,10 @@ export function AppShell({ company, children }: { company?: string; children: Re
           </Form>
 
           <div className="ml-auto flex h-full items-center gap-1">
-            <HeaderIconButton label={fullscreen ? "ออกจากเต็มจอ" : "เต็มจอ"} onClick={toggleFullscreen}>
-              {fullscreen ? <Minimize className="size-[18px]" /> : <Maximize className="size-[18px]" />}
+            {/* ไอคอนสลับด้วย CSS ตาม class "dark" บน <html> จึงตรงกับธีมตั้งแต่แรกโดยไม่ต้องรอ hydrate */}
+            <HeaderIconButton label="สลับโหมดมืด/สว่าง" onClick={toggleTheme}>
+              <Moon className="size-[18px] dark:hidden" />
+              <Sun className="hidden size-[18px] dark:block" />
             </HeaderIconButton>
 
             {/* กล่องผู้ใช้ของ Velzon: พื้นเทาเต็มความสูง header */}
