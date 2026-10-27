@@ -4,7 +4,7 @@ import Form from "next/form";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { ChartColumn, FileText, UserSearch, LayoutDashboard, Menu, Moon, Search, Sun, X } from "lucide-react";
+import { Boxes, ChartColumn, PackageMinus, FileText, UserSearch, LayoutDashboard, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { toggleTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,13 @@ const NAV_GROUPS = [
   {
     title: "Epicor",
     items: [{ href: "/pr", label: "Purchase Requisition", icon: FileText }],
+  },
+  {
+    title: "คลังสินค้า",
+    items: [
+      { href: "/issues", label: "รายการเบิกของ", icon: PackageMinus },
+      { href: "/stock", label: "Stock คงเหลือ", icon: Boxes },
+    ],
   },
 ];
 

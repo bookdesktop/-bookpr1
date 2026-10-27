@@ -175,6 +175,26 @@ export async function getRequisitionsWithLines(whereClauseReqHead: string) {
   return { heads: json.returnObj?.ReqHead ?? [], lines: json.returnObj?.ReqDetail ?? [] };
 }
 
+// ค่าข้อความใน OData $filter: ครอบด้วย ' และ escape ' ข้างใน
+export const odataString = (value: string) => `'${value.replace(/'/g, "''")}'`;
+
+// คลังสินค้า
+export async function getPartTrans(query: BaqQuery = {}): Promise<BaqResult> {
+  return epicorGet("Erp.BO.PartTranHistSvc/PartTranHists", query);
+}
+
+export async function getPartWarehouses(query: BaqQuery = {}): Promise<BaqResult> {
+  return epicorGet("Erp.BO.PartWhseSearchSvc/PartWhseSearches", query);
+}
+
+export async function getParts(query: BaqQuery = {}): Promise<BaqResult> {
+  return epicorGet("Erp.BO.PartSvc/Parts", query);
+}
+
+export async function getWarehouses(): Promise<BaqResult> {
+  return epicorGet("Erp.BO.WarehseSvc/Warehses", { select: "WarehouseCode,Description", top: 500 });
+}
+
 export async function getUsers(query: BaqQuery = {}): Promise<BaqResult> {
   return epicorGet("Ice.BO.UserFileSvc/UserFiles", query);
 }
