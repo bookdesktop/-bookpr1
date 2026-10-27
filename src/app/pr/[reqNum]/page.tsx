@@ -5,12 +5,13 @@ import { BaqTable } from "@/components/baq-table";
 import { getRequisition } from "@/lib/epicor";
 
 const HEADER_FIELDS = {
-  ReqDate: "วันที่ขอ",
+  RequestDate: "วันที่ขอ",
   RequestorID: "ผู้ขอ",
+  RequestorIDName: "ชื่อผู้ขอ",
   ReqUserId: "ผู้สร้าง",
   CurrDispatcherID: "ผู้อนุมัติปัจจุบัน",
   ReqActionID: "Action",
-  StatusType: "สถานะ",
+  StatusDesc: "สถานะ",
   OpenReq: "Open",
   ShipName: "ส่งถึง",
   CommentText: "หมายเหตุ",

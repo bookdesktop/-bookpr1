@@ -31,8 +31,9 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 // มูลค่า PR line (สกุลเงินหลัก) — ReqDetail.ExtCost เป็นค่าคำนวณของ BO ไม่มีใน DB จึงคำนวณเอง
 // CostPerCode: E = ต่อหน่วย, C = ต่อ 100, M = ต่อ 1000 (ตรงกับค่าของ BO 300/300 แถว)
 const COST_PER_DIVISOR: Record<string, number> = { C: 100, M: 1000 };
-const prLineCost = (r: BaqRow) =>
-  (num(r.ReqDetail_OrderQty) * num(r.ReqDetail_UnitCost)) / (COST_PER_DIVISOR[str(r.ReqDetail_CostPerCode)] ?? 1);
+const lineCost = (orderQty: BaqRow[string], unitCost: BaqRow[string], costPerCode: BaqRow[string]) =>
+  (num(orderQty) * num(unitCost)) / (COST_PER_DIVISOR[str(costPerCode)] ?? 1);
+const prLineCost = (r: BaqRow) => lineCost(r.ReqDetail_OrderQty, r.ReqDetail_UnitCost, r.ReqDetail_CostPerCode);
 
 export function summarizePrPayments(raw: BaqRow[], month: string): MonthlyKpi {
   // กรองซ้ำฝั่งเว็บ เผื่อ timezone ของ server ไม่ตรง

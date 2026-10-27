@@ -7,12 +7,13 @@ const PAGE_SIZE = 50;
 
 const COLUMNS = {
   ReqNum: "เลขที่ PR",
-  ReqDate: "วันที่ขอ",
+  RequestDate: "วันที่ขอ",
   RequestorID: "ผู้ขอ",
+  RequestorIDName: "ชื่อผู้ขอ",
   ReqUserId: "ผู้สร้าง",
   CurrDispatcherID: "ผู้อนุมัติปัจจุบัน",
   ReqActionID: "Action",
-  StatusType: "สถานะ",
+  StatusDesc: "สถานะ",
   OpenReq: "Open",
   CommentText: "หมายเหตุ",
 };

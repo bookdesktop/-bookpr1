@@ -54,7 +54,8 @@ function buildUrl(path: string, query: BaqQuery): URL {
   if (query.filter) url.searchParams.set("$filter", query.filter);
   if (query.orderby) url.searchParams.set("$orderby", query.orderby);
   if (query.select) url.searchParams.set("$select", query.select);
-  if (version !== "v1") url.searchParams.set("$count", "true");
+  // $count ใช้ได้กับ BAQ เท่านั้น — กับ BO service (เช่น ReqSvc) จะตัดผลเหลือ 100 แถวและทำให้ $skip ใช้ไม่ได้
+  if (version !== "v1" && path.startsWith("BaqSvc/")) url.searchParams.set("$count", "true");
   for (const [key, value] of Object.entries(query.params ?? {})) {
     url.searchParams.set(key, value);
   }
@@ -81,7 +82,7 @@ function getDispatcher(): Agent | undefined {
 }
 
 function buildHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", "Content-Type": "application/json" };
 
   // Kinetic / REST v2 ต้องส่ง API Key ทุกครั้ง (สร้างได้ที่ API Key Maintenance)
   const apiKey = process.env.EPICOR_API_KEY;
@@ -97,10 +98,15 @@ function buildHeaders(): Record<string, string> {
   return headers;
 }
 
-async function epicorGet(path: string, query: BaqQuery): Promise<BaqResult> {
+async function epicorFetch<T>(url: URL, body?: unknown): Promise<T> {
   let res;
   try {
-    res = await fetch(buildUrl(path, query), { headers: buildHeaders(), dispatcher: getDispatcher() });
+    res = await fetch(url, {
+      method: body === undefined ? "GET" : "POST",
+      headers: buildHeaders(),
+      body: body === undefined ? undefined : JSON.stringify(body),
+      dispatcher: getDispatcher(),
+    });
   } catch (err) {
     // "fetch failed" ไม่บอกสาเหตุ ต้องดูจาก err.cause (เช่น ECONNREFUSED, SELF_SIGNED_CERT)
     const cause = err instanceof Error && err.cause instanceof Error ? err.cause : undefined;
@@ -118,7 +124,11 @@ async function epicorGet(path: string, query: BaqQuery): Promise<BaqResult> {
     throw new EpicorError(`Epicor ตอบกลับ ${res.status}: ${message.slice(0, 500)}`, res.status);
   }
 
-  const json = (await res.json()) as { value?: BaqRow[]; "@odata.count"?: number };
+  return (await res.json()) as T;
+}
+
+async function epicorGet(path: string, query: BaqQuery): Promise<BaqResult> {
+  const json = await epicorFetch<{ value?: BaqRow[]; "@odata.count"?: number }>(buildUrl(path, query));
   return {
     rows: json.value ?? [],
     count: json["@odata.count"],
@@ -136,10 +146,49 @@ export async function getRequisitions(query: BaqQuery = {}): Promise<BaqResult> 
   return epicorGet("Erp.BO.ReqSvc/Reqs", query);
 }
 
+// ReqSvc/ReqDetails หาบรรทัดเฉพาะในหัว PR ชุดแรก (~100 ใบ) PR ใหม่ๆ จึงไม่เจอบรรทัด
+// ต้องดึงผ่าน GetByID (ทีละใบ) หรือ GetRows (หลายใบพร้อมบรรทัด) แทน
 export async function getRequisition(reqNum: number) {
-  const [head, lines] = await Promise.all([
-    epicorGet("Erp.BO.ReqSvc/Reqs", { filter: `ReqNum eq ${reqNum}`, top: 1 }),
-    epicorGet("Erp.BO.ReqSvc/ReqDetails", { filter: `ReqNum eq ${reqNum}`, orderby: "ReqLine" }),
-  ]);
-  return { header: head.rows[0] ?? null, lines: lines.rows };
+  const url = buildUrl(`Erp.BO.ReqSvc/Reqs('${encodeURIComponent(env("EPICOR_COMPANY"))}',${reqNum})`, {});
+  url.searchParams.set("$expand", "ReqDetails");
+  try {
+    const { ReqDetails, ...header } = await epicorFetch<BaqRow & { ReqDetails?: BaqRow[] }>(url);
+    const lines = [...(ReqDetails ?? [])].sort((a, b) => Number(a.ReqLine) - Number(b.ReqLine));
+    return { header: header as BaqRow, lines };
+  } catch (err) {
+    if (err instanceof EpicorError && err.status === 404) return { header: null, lines: [] };
+    throw err;
+  }
+}
+
+// whereClause ใช้ไวยากรณ์ของ Epicor BO เช่น "RequestDate >= '2026-09-01' and RequestDate < '2026-10-01'"
+export async function getRequisitionsWithLines(whereClauseReqHead: string) {
+  const url = buildUrl("Erp.BO.ReqSvc/GetRows", {});
+  const json = await epicorFetch<{ returnObj?: { ReqHead?: BaqRow[]; ReqDetail?: BaqRow[] } }>(url, {
+    whereClauseReqHead,
+    whereClauseReqHeadAttch: "",
+    whereClauseReqDetail: "",
+    whereClauseReqDetailAttch: "",
+    pageSize: 0,
+    absolutePage: 0,
+  });
+  return { heads: json.returnObj?.ReqHead ?? [], lines: json.returnObj?.ReqDetail ?? [] };
+}
+
+export async function getUsers(query: BaqQuery = {}): Promise<BaqResult> {
+  return epicorGet("Ice.BO.UserFileSvc/UserFiles", query);
+}
+
+// BO service ไม่คืน @odata.count ที่เชื่อถือได้ จึงดึงทีละหน้าจนได้น้อยกว่าขนาดหน้า
+export async function fetchAll(
+  fetcher: (query: BaqQuery) => Promise<BaqResult>,
+  query: BaqQuery,
+  pageSize = 500,
+): Promise<BaqRow[]> {
+  const rows: BaqRow[] = [];
+  for (let skip = 0; ; skip += pageSize) {
+    const page = await fetcher({ ...query, top: pageSize, skip });
+    rows.push(...page.rows);
+    if (page.rows.length < pageSize) return rows;
+  }
 }

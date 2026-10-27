@@ -4,7 +4,7 @@ import Form from "next/form";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { Building2, ChartColumn, FileText, LayoutDashboard, Maximize, Menu, Minimize, Search, X } from "lucide-react";
+import { Building2, ChartColumn, FileText, UserSearch, LayoutDashboard, Maximize, Menu, Minimize, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // เมนูตามรูปแบบ Velzon: แบ่งเป็นกลุ่ม แต่ละกลุ่มมีหัวข้อ (menu-title)
@@ -14,6 +14,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/", label: "หน้าหลัก", icon: LayoutDashboard },
       { href: "/kpi", label: "KPI รายเดือน", icon: ChartColumn },
+      { href: "/requestors", label: "ค้นหาผู้ขอ", icon: UserSearch },
     ],
   },
   {

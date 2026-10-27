@@ -5,57 +5,12 @@ import { Banknote, ChevronLeft, ChevronRight, FileCheck, Receipt, Wallet } from 
 import { BaqTable } from "@/components/baq-table";
 import { EpicorError } from "@/lib/epicor";
 import { getMonthlyPrKpi, PR_PAYMENT_BAQ } from "@/lib/kpi";
-
-const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-function currentMonth() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit" }).format(new Date());
-}
-
-function shiftMonth(month: string, delta: number) {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-function monthLabel(month: string) {
-  const [y, m] = month.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("th-TH", { month: "long", year: "numeric", timeZone: "UTC" });
-}
-
-function KpiCard({ label, value, sub, icon: Icon, tone }: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: typeof Wallet;
-  tone: "primary" | "success" | "warning" | "info";
-}) {
-  const toneClass = {
-    primary: "bg-primary-soft text-primary",
-    success: "bg-success-soft text-success",
-    warning: "bg-warning-soft text-warning",
-    info: "bg-info-soft text-info",
-  }[tone];
-
-  return (
-    <div className="rounded border bg-card p-4 transition hover:-translate-y-1">
-      <p className="text-xs font-medium text-muted-foreground uppercase">{label}</p>
-      <div className="mt-4 flex items-end justify-between gap-2">
-        <div>
-          <p className="text-[22px] font-semibold tabular-nums">{value}</p>
-          {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
-        </div>
-        <span className={`flex size-12 items-center justify-center rounded ${toneClass}`}>
-          <Icon className="size-6" />
-        </span>
-      </div>
-    </div>
-  );
-}
+import { currentMonth, money, MONTH_PATTERN, monthLabel, shiftMonth } from "@/lib/month";
+import { KpiCard } from "@/components/kpi-card";
 
 async function KpiContent({ searchParams }: PageProps<"/kpi">) {
   const sp = await searchParams;
-  const month = typeof sp.month === "string" && /^\d{4}-\d{2}$/.test(sp.month) ? sp.month : currentMonth();
+  const month = typeof sp.month === "string" && MONTH_PATTERN.test(sp.month) ? sp.month : currentMonth();
 
   let kpi;
   try {
