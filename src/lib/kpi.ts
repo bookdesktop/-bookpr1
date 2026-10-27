@@ -6,11 +6,11 @@ import { monthRange } from "@/lib/month";
 
 export type { MonthlyKpi, PrPaymentSummary } from "@/lib/kpi-calc";
 
-export const PR_PAYMENT_BAQ = process.env.EPICOR_BAQ_PR_PAYMENT ?? "zPRPayment";
+export const prPaymentBaq = () => process.env.EPICOR_BAQ_PR_PAYMENT ?? "zPRPayment";
 
 export async function getMonthlyPrKpi(month: string): Promise<MonthlyKpi> {
   const { start, end } = monthRange(month);
-  const { rows: raw } = await getBaqData(PR_PAYMENT_BAQ, {
+  const { rows: raw } = await getBaqData(prPaymentBaq(), {
     filter: `APTran_TranDate ge ${start} and APTran_TranDate lt ${end}`,
     top: 10000,
   });

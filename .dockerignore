@@ -1,0 +1,18 @@
+# ไม่ส่งเข้า build context
+node_modules
+.next
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+.dockerignore
+docs
+README.md
+AGENTS.md
+*.tsbuildinfo
+npm-debug.log*
+
+# ความลับและไฟล์เฉพาะเครื่อง — ส่งเข้า container ตอนรันผ่าน env_file / volume เท่านั้น
+.env*
+!.env.example
+certs

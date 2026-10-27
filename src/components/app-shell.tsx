@@ -4,7 +4,7 @@ import Form from "next/form";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { Building2, ChartColumn, FileText, UserSearch, LayoutDashboard, Menu, Moon, Search, Sun, X } from "lucide-react";
+import { ChartColumn, FileText, UserSearch, LayoutDashboard, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { toggleTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -95,7 +95,8 @@ function HeaderIconButton({ label, onClick, children }: { label: string; onClick
   );
 }
 
-export function AppShell({ company, children }: { company?: string; children: React.ReactNode }) {
+// headerEnd: ส่วนท้ายขวาของ header (เช่นกล่อง Company) ส่งมาจาก server component
+export function AppShell({ headerEnd, children }: { headerEnd?: React.ReactNode; children: React.ReactNode }) {
   // mobileOpen: drawer บนจอเล็ก / collapsed: ย่อ sidebar เหลือแต่ไอคอนบนจอใหญ่ (70px)
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -169,18 +170,7 @@ export function AppShell({ company, children }: { company?: string; children: Re
               <Sun className="hidden size-[18px] dark:block" />
             </HeaderIconButton>
 
-            {/* กล่องผู้ใช้ของ Velzon: พื้นเทาเต็มความสูง header */}
-            {company && (
-              <div className="ml-2 flex h-full items-center gap-2.5 bg-muted px-4 lg:px-5">
-                <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Building2 className="size-4" />
-                </span>
-                <span className="hidden flex-col leading-tight sm:flex">
-                  <span className="text-[13px] font-medium text-foreground">Company {company}</span>
-                  <span className="text-xs text-muted-foreground">Epicor ERP</span>
-                </span>
-              </div>
-            )}
+            {headerEnd}
           </div>
         </header>
         <main className="flex-1">{children}</main>

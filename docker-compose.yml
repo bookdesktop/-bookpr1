@@ -1,0 +1,15 @@
+services:
+  epicor-web:
+    build: .
+    image: epicor-web:latest
+    container_name: epicor-web
+    restart: unless-stopped
+    ports:
+      - "6060:6060"
+    # ค่า EPICOR_* อ่านตอนรัน — แก้ .env แล้ว `docker compose up -d` ใหม่ ไม่ต้อง build ใหม่
+    env_file:
+      - .env
+    # ถ้าใช้ EPICOR_CA_CERT แทน NODE_TLS_REJECT_UNAUTHORIZED ให้เปิดบรรทัดด้านล่าง
+    # และตั้ง EPICOR_CA_CERT=/app/certs/epicor-server.pem ใน .env
+    # volumes:
+    #   - ./certs:/app/certs:ro

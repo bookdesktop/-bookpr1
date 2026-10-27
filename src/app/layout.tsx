@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
+import { CompanyBadge } from "@/components/company-badge";
 import { themeInitScript } from "@/lib/theme";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
@@ -34,7 +36,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-full">
-        <AppShell company={process.env.EPICOR_COMPANY}>{children}</AppShell>
+        <AppShell
+          headerEnd={
+            <Suspense fallback={null}>
+              <CompanyBadge />
+            </Suspense>
+          }
+        >
+          {children}
+        </AppShell>
       </body>
     </html>
   );

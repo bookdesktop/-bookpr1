@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { Banknote, ChevronLeft, ChevronRight, FileCheck, Receipt, Wallet } from "lucide-react";
 import { BaqTable } from "@/components/baq-table";
 import { EpicorError } from "@/lib/epicor";
-import { getMonthlyPrKpi, PR_PAYMENT_BAQ } from "@/lib/kpi";
+import { getMonthlyPrKpi, prPaymentBaq } from "@/lib/kpi";
 import { currentMonth, money, MONTH_PATTERN, monthLabel, shiftMonth } from "@/lib/month";
 import { KpiCard } from "@/components/kpi-card";
 
@@ -21,7 +21,7 @@ async function KpiContent({ searchParams }: PageProps<"/kpi">) {
       <div className="rounded border border-destructive/30 bg-danger-soft p-4 text-sm text-destructive">
         {missingBaq ? (
           <>
-            ยังไม่พบ BAQ <code className="font-mono">{PR_PAYMENT_BAQ}</code> ใน Epicor — ให้ทีม Epicor สร้างตาม{" "}
+            ยังไม่พบ BAQ <code className="font-mono">{prPaymentBaq()}</code> ใน Epicor — ให้ทีม Epicor สร้างตาม{" "}
             <code className="font-mono">docs/BAQ-PR-PAYMENT.md</code>
           </>
         ) : (
