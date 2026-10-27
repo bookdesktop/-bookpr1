@@ -195,6 +195,11 @@ export async function getWarehouses(): Promise<BaqResult> {
   return epicorGet("Erp.BO.WarehseSvc/Warehses", { select: "WarehouseCode,Description", top: 500 });
 }
 
+// เอกสารขอเบิกทั่วไป (Customization AST): Key1 = เลขที่เอกสาร = PartTran.TranReference, Key2 = 'GI'
+export async function getIssueDocs(query: BaqQuery = {}): Promise<BaqResult> {
+  return epicorGet("Ice.BO.UD100Svc/UD100s", query);
+}
+
 export async function getUsers(query: BaqQuery = {}): Promise<BaqResult> {
   return epicorGet("Ice.BO.UserFileSvc/UserFiles", query);
 }

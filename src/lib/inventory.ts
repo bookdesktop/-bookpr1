@@ -1,9 +1,12 @@
 // รายการเบิกของ (PartTran) และ Stock คงเหลือ (PartWhse)
 
 import {
+  fetchAll,
+  getIssueDocs,
   getPartTrans,
   getParts,
   getPartWarehouses,
+  getUsers,
   getWarehouses,
   odataString,
   type BaqRow,
@@ -35,28 +38,131 @@ export async function getWarehouseOptions(): Promise<{ code: string; name: strin
     .sort((a, b) => a.code.localeCompare(b.code));
 }
 
-export async function getIssues(opts: {
-  month: string;
-  type: IssueType;
-  q?: string;
-  warehouse?: string;
-  page: number;
-}): Promise<Paged<BaqRow>> {
+type IssueFilter = { month: string; type: IssueType; q?: string; warehouse?: string };
+
+function issueFilter(opts: IssueFilter, withSearch = true) {
   const { start, end } = monthRange(opts.month);
   const parts = [`TranDate ge ${start}`, `TranDate lt ${end}`, `TranType eq ${odataString(opts.type)}`];
   if (opts.warehouse) parts.push(`WareHouseCode eq ${odataString(opts.warehouse)}`);
-  if (opts.q) {
+  if (withSearch && opts.q) {
     const q = odataString(opts.q);
     parts.push(`(contains(PartNum,${q}) or contains(TranReference,${q}) or contains(EntryPerson,${q}))`);
   }
+  return parts.join(" and ");
+}
 
-  const { rows } = await getPartTrans({
-    filter: parts.join(" and "),
-    orderby: "TranDate desc,TranNum desc",
-    top: PAGE_SIZE + 1,
-    skip: (opts.page - 1) * PAGE_SIZE,
+// UserID → ชื่อ (เทียบแบบไม่สนตัวพิมพ์ เพราะ EntryPerson บันทึกตัวพิมพ์ไม่ตรงกับ UserFile เสมอไป)
+async function getUserNames() {
+  const users = await fetchAll(getUsers, { select: "UserID,Name" });
+  const names = new Map(users.map((u) => [String(u.UserID).toLowerCase(), String(u.Name ?? "")]));
+  return (id: unknown) => names.get(String(id ?? "").toLowerCase()) ?? "";
+}
+
+type IssueDoc = { empId: string; empName: string; dept: string; purpose: string };
+
+// ผู้ขอเบิกตัวจริงอยู่ในใบขอเบิก UD100 (PartTran.EntryPerson เป็นเจ้าหน้าที่ Store ที่บันทึกตัดสต็อก)
+async function getIssueDocMap(refs: string[]) {
+  const unique = [...new Set(refs.filter(Boolean))];
+  const chunks: string[][] = [];
+  for (let i = 0; i < unique.length; i += 40) chunks.push(unique.slice(i, i + 40));
+  const results = await Promise.all(
+    chunks.map((chunk) =>
+      getIssueDocs({
+        filter: `Key2 eq 'GI' and (${chunk.map((k) => `Key1 eq ${odataString(k)}`).join(" or ")})`,
+        select: "Key1,ShortChar01,Character02,ShortChar04,Character03",
+        top: chunk.length,
+      }),
+    ),
+  );
+  const docs = new Map<string, IssueDoc>();
+  for (const r of results.flatMap((x) => x.rows)) {
+    docs.set(String(r.Key1), {
+      empId: String(r.ShortChar01 ?? "").trim(),
+      empName: String(r.Character02 ?? "").trim(),
+      dept: String(r.ShortChar04 ?? "").trim(),
+      purpose: String(r.Character03 ?? "").trim(),
+    });
+  }
+  return docs;
+}
+
+
+// เบิกทั่วไปมีไม่กี่ร้อยรายการต่อเดือน: ดึงทั้งเดือนแล้วค้น/แบ่งหน้าในหน่วยความจำ
+// เพื่อให้ค้นจากชื่อผู้ขอเบิก/แผนก (อยู่ใน UD100 ไม่ใช่ PartTran) ได้
+async function getMiscIssuesOfMonth(opts: IssueFilter): Promise<BaqRow[]> {
+  const [rows, nameOf] = await Promise.all([
+    fetchAll(getPartTrans, { filter: issueFilter(opts, false), orderby: "TranDate desc,TranNum desc" }, 2000),
+    getUserNames(),
+  ]);
+  const docs = await getIssueDocMap(rows.map((r) => String(r.TranReference ?? "")));
+  const all = rows.map((r): BaqRow => {
+    const doc = docs.get(String(r.TranReference ?? ""));
+    return {
+      ...r,
+      EntryPersonName: nameOf(r.EntryPerson),
+      RequesterID: doc?.empId ?? "",
+      RequesterName: doc?.empName ?? "",
+      RequesterDept: doc?.dept ?? "",
+      RequesterPurpose: doc?.purpose ?? "",
+    };
   });
-  return paged(rows);
+
+  const needle = opts.q?.toLowerCase();
+  if (!needle) return all;
+  return all.filter((r) =>
+    [r.PartNum, r.PartNumPartDescription, r.TranReference, r.EntryPerson, r.RequesterID, r.RequesterName, r.RequesterDept]
+      .some((v) => String(v ?? "").toLowerCase().includes(needle)),
+  );
+}
+
+export async function getIssues(opts: IssueFilter & { page: number }): Promise<Paged<BaqRow>> {
+  if (opts.type === "STK-UKN") {
+    const all = await getMiscIssuesOfMonth(opts);
+    const startIdx = (opts.page - 1) * PAGE_SIZE;
+    return { rows: all.slice(startIdx, startIdx + PAGE_SIZE), hasNext: all.length > startIdx + PAGE_SIZE };
+  }
+
+  // เบิกเข้า Job: ไม่มีใบขอเบิก UD100 และมีหลักแสนรายการ — แบ่งหน้าที่ Epicor
+  const [{ rows }, nameOf] = await Promise.all([
+    getPartTrans({
+      filter: issueFilter(opts),
+      orderby: "TranDate desc,TranNum desc",
+      top: PAGE_SIZE + 1,
+      skip: (opts.page - 1) * PAGE_SIZE,
+    }),
+    getUserNames(),
+  ]);
+  return paged(rows.map((r) => ({ ...r, EntryPersonName: nameOf(r.EntryPerson) })));
+}
+
+export type Requester = {
+  empId: string;
+  name: string;
+  dept: string;
+  docCount: number;
+  tranCount: number;
+  value: number;
+};
+
+// สรุปผู้ขอเบิกทั้งเดือน (เฉพาะเบิกทั่วไป) จากใบขอเบิก UD100 ที่ Store ตัดจ่ายแล้วใน PartTran
+export async function getRequesters(opts: IssueFilter): Promise<Requester[]> {
+  const rows = await getMiscIssuesOfMonth({ ...opts, q: undefined });
+  const byEmp = new Map<string, Requester & { docs: Set<string> }>();
+  for (const r of rows) {
+    const empId = String(r.RequesterID);
+    const key = empId || String(r.RequesterName);
+    let s = byEmp.get(key);
+    if (!s) {
+      s = { empId, name: String(r.RequesterName) || "(ไม่พบใบขอเบิก)", dept: String(r.RequesterDept), docCount: 0, tranCount: 0, value: 0, docs: new Set() };
+      byEmp.set(key, s);
+    }
+    s.tranCount++;
+    if (r.TranReference) s.docs.add(String(r.TranReference));
+    s.value += Number(r.ExtCost) || 0;
+  }
+  return [...byEmp.values()]
+    .map(({ docs, ...s }) => ({ ...s, docCount: docs.size }))
+    .sort((a, b) => b.value - a.value);
 }
 
 export type StockRow = {
