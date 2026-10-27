@@ -58,7 +58,7 @@ async function BaqData({ params, searchParams }: PageProps<"/baq/[baqId]">) {
 
 export default function Page(props: PageProps<"/baq/[baqId]">) {
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className="flex w-full flex-col gap-6 p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Epicor BAQ</h1>
         <Link href="/" className="text-sm text-muted-foreground hover:underline">

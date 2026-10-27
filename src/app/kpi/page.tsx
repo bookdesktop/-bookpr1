@@ -108,7 +108,7 @@ async function KpiContent({ searchParams }: PageProps<"/kpi">) {
 
 export default function Page(props: PageProps<"/kpi">) {
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className="flex w-full flex-col gap-6 p-4 sm:p-6">
       <h1 className="text-2xl font-semibold">KPI รายเดือน — ยอดชำระ PR</h1>
       <Suspense fallback={<p className="text-muted-foreground">กำลังคำนวณ KPI จาก Epicor...</p>}>
         <KpiContent {...props} />

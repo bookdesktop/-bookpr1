@@ -122,7 +122,7 @@ async function RequestorResults({ searchParams }: PageProps<"/requestors">) {
 
 export default function Page(props: PageProps<"/requestors">) {
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className="flex w-full flex-col gap-6 p-4 sm:p-6">
       <h1 className="text-2xl font-semibold">ค้นหาผู้ขอ PR</h1>
 
       <Suspense fallback={<SearchForm />}>
