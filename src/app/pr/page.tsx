@@ -48,8 +48,9 @@ async function PrList({ searchParams }: PageProps<"/pr">) {
     );
   }
 
-  const { rows, count } = result;
-  const hasNext = count != null ? page * PAGE_SIZE < count : rows.length === PAGE_SIZE;
+  // Erp.BO.ReqSvc คืน @odata.count ไม่ตรงกับจำนวนจริง (ติดเพดาน ~100) จึงไม่ใช้ count
+  const { rows } = result;
+  const hasNext = rows.length === PAGE_SIZE;
   const pageHref = (p: number) => {
     const params = new URLSearchParams({ page: String(p), status });
     if (q) params.set("q", q);
@@ -75,7 +76,7 @@ async function PrList({ searchParams }: PageProps<"/pr">) {
       </form>
 
       <p className="text-sm text-muted-foreground">
-        {count != null ? `ทั้งหมด ${count.toLocaleString("th-TH")} รายการ · ` : ""}หน้า {page}
+        หน้า {page} · {rows.length.toLocaleString("th-TH")} รายการ
       </p>
       <BaqTable rows={rows} columns={COLUMNS} link={{ column: "ReqNum", href: (row) => `/pr/${row.ReqNum}` }} />
       <div className="flex gap-2">
